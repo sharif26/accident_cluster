@@ -72,8 +72,8 @@
       ) {
         ready(function() {
           parser.parse();
-		  esriConfig.defaults.io.corsEnabledServers.push("www.chesterfield.mo.us");
-		  esriConfig.defaults.io.corsEnabledServers.push("appz.chesterfield.mo.us");
+		  //put your own domain to support CORS
+		  esriConfig.defaults.io.corsEnabledServers.push("");
   
           var clusterLayer;
           var popupOptions = {
@@ -93,14 +93,14 @@
 			center: [-90.562, 38.662 ],
 			sliderOrientation : "horizontal"
           });
-		  
-		  dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://mapping.chesterfield.mo.us/arcgis/rest/services/GeneralPurpose1/MapServer");
-		  //dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://webgis.chesterfield.mo.us/arcgis/rest/services/Plan/ActiveProjects/MapServer");
+		  //in real code, we use our own ARCGIS general purpose map Server
+		  dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://tasks.arcgisonline.com/arcgis/rest/services/Plan/ActiveProjects/MapServer");
 		  map.addLayer(dynamicMSLayer);
 		  //map.setScale(50000);
 		  
-		  //gsvc = new esri.tasks.GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
-		  gsvc = new esri.tasks.GeometryService("http://mapping.chesterfield.mo.us/arcgis/rest/services/Utilities/Geometry/GeometryServer");
+		  //in real code, we use our own ARCGIS Geometry Server
+		  gsvc = new esri.tasks.GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
+		  
 		  //console.log(gsvc);
           map.on("load", function() {
 		  
@@ -112,15 +112,14 @@
 
             // get the latest 1000 photos from instagram/laguna beach
             var photos = esriRequest({
-              //url: "data/1000-photos.json",
-              url: "http://www.chesterfield.mo.us/cmss_files/getwo.php",
-              //url: "https://appz.chesterfield.mo.us/cmss/cscrs/load.php?type=searchWO&lastName=&reportedBegin=&reportedEnd=&woID=&woStatus=open&streetWO=&subdivisionWO=&problemID=&disposition=&assignedTo=191",
+              //in real code, put PHP(or other) code which connects to DB to get WO data & echo those in JSON format
+              url: "data/1000-photos.json",
               handleAs: "json"
             });
-			//console.log( photos );
+	    //console.log( photos );
             photos.then(addClusters, error);
 			
-			//projectToLatLong();
+		//projectToLatLong();
 			
           });
 
@@ -129,6 +128,8 @@
             var wgs = new SpatialReference({
               "wkid": 4326
             });
+            
+            //need to modify here according to DB column name or labe/title	
             var popupTemplate = new PopupTemplate({
               "title": "",
               "fieldInfos": [{
@@ -169,6 +170,7 @@
 				pt = new esri.geometry.Point( resp[i].PXCENTER, resp[i].PYCENTER, inSR );
 				params.geometries.push(pt);
 			}
+			//coordinate convertion logic here, from MO state plane to lat/long, web mercator
 			gsvc.project(params, function(projectedPoints) {
 				//pt = projectedPoints[0];
 				//console.log(projectedPoints.length);
