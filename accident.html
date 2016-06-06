@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+	<meta http-equiv="x-ua-compatible" content="IE=edge" >
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+    <title>Accident Spatial Cluster 2016</title>
+    <link rel="stylesheet" href="https://jsdev.arcgis.com/3.15/dijit/themes/tundra/tundra.css">
+    <link rel="stylesheet" href="https://jsdev.arcgis.com/3.15/esri/css/esri.css">
+    <style>
+      html, body { height: 100%; width: 100%; margin: 0; padding: 0; }
+      #map{ margin: 0; padding: 0; }
+
+      /* center the image in the popup */
+      .esriViewPopup .gallery { margin: 0 auto !important; }
+    </style>
+
+    <script>
+      // helpful for understanding dojoConfig.packages vs. dojoConfig.paths:
+      // http://www.sitepen.com/blog/2013/06/20/dojo-faq-what-is-the-difference-packages-vs-paths-vs-aliases/
+      var dojoConfig = { 
+        paths: {
+          extras: location.pathname.replace(/\/[^/]+$/, "") + "/extras"
+        }
+      };
+    </script>
+    <script src="https://jsdev.arcgis.com/3.15/"></script>
+    <script>
+      var map, gsvc, dynamicMSLayer;
+      require([
+        "dojo/parser", 
+        "dojo/ready",
+        "dojo/_base/array",
+        "esri/Color",
+        "dojo/dom-style",
+        "dojo/query",
+
+        "esri/map", 
+        "esri/request",
+        "esri/graphic",
+        "esri/geometry/Extent",
+
+        "esri/symbols/SimpleMarkerSymbol",
+		'esri/symbols/SimpleLineSymbol',
+        "esri/symbols/SimpleFillSymbol",
+        "esri/symbols/PictureMarkerSymbol",
+        "esri/renderers/ClassBreaksRenderer",
+
+		"esri/layers/ArcGISDynamicMapServiceLayer",
+		"esri/tasks/GeometryService",
+		
+        "esri/layers/GraphicsLayer",
+        "esri/SpatialReference",
+        "esri/dijit/PopupTemplate",
+        "esri/geometry/Point",
+        "esri/geometry/webMercatorUtils",
+		
+        "esri/tasks/ProjectParameters",
+        
+
+        "extras/ClusterLayer",
+
+        "dijit/layout/BorderContainer", 
+        "dijit/layout/ContentPane", 
+        "dojo/domReady!"
+      ], function(
+        parser, ready, arrayUtils, Color, domStyle, query,
+        Map, esriRequest, Graphic, Extent,  
+        SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, PictureMarkerSymbol, ClassBreaksRenderer, ArcGISDynamicMapServiceLayer, GeometryService,
+        GraphicsLayer, SpatialReference, PopupTemplate, Point, webMercatorUtils, ProjectParameters,
+        ClusterLayer
+      ) {
+        ready(function() {
+          parser.parse();
+		  esriConfig.defaults.io.corsEnabledServers.push("www.chesterfield.mo.us");
+		  esriConfig.defaults.io.corsEnabledServers.push("appz.chesterfield.mo.us");
+  
+          var clusterLayer;
+          var popupOptions = {
+            "markerSymbol": new SimpleMarkerSymbol("circle", 20, null, new Color([0, 0, 0, 0.25])),
+            "marginLeft": "20",
+            "marginTop": "20"
+          };
+		  
+          map = new Map("map", {
+            /*basemap: "streets",
+            //center: [38.789, -85.543],
+            center: [-90.562, 38.662 ],
+            //center: [ 38.649, -90.522 ],
+			extent: new Extent({xmin:-10099493.11689429,ymin:4663869.755018269,xmax:-10066136.500181057,ymax:4679014.535307829,spatialReference:{wkid:102100}}),
+            zoom: 13*/
+			center: [-90.562, 38.662 ],
+			sliderOrientation : "horizontal",
+			sliderPosition: "top-right"
+          });
+		  
+		  dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://mapping.chesterfield.mo.us/arcgis/rest/services/GeneralPurpose1/MapServer");
+		  //dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://webgis.chesterfield.mo.us/arcgis/rest/services/Plan/ActiveProjects/MapServer");
+		  map.addLayer(dynamicMSLayer);
+		  //map.setScale(50000);
+		  
+		  //gsvc = new esri.tasks.GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
+		  gsvc = new esri.tasks.GeometryService("http://mapping.chesterfield.mo.us/arcgis/rest/services/Utilities/Geometry/GeometryServer");
+		  //console.log(gsvc);
+          map.on("load", function() {
+		  
+            // hide the popup's ZoomTo link as it doesn't make sense for cluster features
+            domStyle.set(query("a.action.zoomTo")[0], "display", "none");
+
+            // get the latest 1000 photos from instagram/laguna beach
+            var photos = esriRequest({
+              //url: "data/1000-photos.json",
+              url: "http://www.chesterfield.mo.us/cmss_files/getacc.php",
+              handleAs: "json"
+            });
+			//console.log( photos );
+            photos.then(addClusters, error);
+          });
+
+          function addClusters(resp) {
+            var photoInfo = {};
+            var wgs = new SpatialReference({
+              "wkid": 4326
+            });
+			
+			photoInfo.data = arrayUtils.map(resp, function(p) {
+			  var latlng = new  Point(parseFloat(p.LongitudeDecimal), parseFloat(p.LatitudeDecimal), wgs);
+			  var webMercator = webMercatorUtils.geographicToWebMercator(latlng);
+			  var attributes = {
+				"Caption": p.ReportNumber,
+				"Name": p.ReviewOfficer1,
+				"Image": p.AccDate,
+				"Link": p.OnLocationRoadMaintBy
+			  };
+			  return {
+				"x": webMercator.x,
+				"y": webMercator.y,
+				"attributes": attributes
+			  };
+			});				
+            var popupTemplate = new PopupTemplate({
+              "title": "Accident Info",
+              "fieldInfos": [{
+                "fieldName": "Caption",
+				"label": "Report #",
+                visible: true
+              }, {
+                "fieldName": "Link",
+                "label": "Maint By",
+                visible: true
+              }, {
+                "fieldName": "Name",
+                "label": "Officer",
+                visible: true
+              }, {
+                "fieldName": "Image",
+                "label": "Acc. Date",
+                visible: true
+              }]
+			  /*,
+              "mediaInfos": [{
+                "title": "",
+                "caption": "",
+                "type": "image",
+                "value": {
+                  "sourceURL": "{Image}",
+                  "linkURL": "{Link}"
+                }
+              }]*/
+            });			
+/*			
+			//console.log(resp[0]);
+			var outSR = new SpatialReference(4326);
+			var inSR = new SpatialReference(102696);
+			var params = new ProjectParameters();
+			params.outSR = outSR;
+			params.geometries = [];
+			for( i=0; i<resp.length; i++ ){
+				pt = new esri.geometry.Point( resp[i].PXCENTER, resp[i].PYCENTER, inSR );
+				params.geometries.push(pt);
+			}
+			gsvc.project(params, function(projectedPoints) {
+				photoInfo.data = arrayUtils.map(resp, function(p, i) {
+				  //var proj = projectToLatLong(p.PXCENTER, p.PYCENTER);
+				  //console.log(projectedPoints[i].y, projectedPoints[i].x);
+				  //console.log(p, i);
+				  //var latlng = new  Point(parseFloat(p.lng), parseFloat(p.lat), wgs);
+				  var latlng = new Point(projectedPoints[i].x, projectedPoints[i].y, wgs);
+				  var webMercator = webMercatorUtils.geographicToWebMercator(latlng);
+				  var attributes = {
+					"Caption": p.PROBLEM,
+					"Name": p.L_NAME,
+					"Image": p.ADDRESS,
+					"Reported": p.REPORTED,
+					"Link": p.STREET
+				  };
+				  return {
+					"x": webMercator.x,
+					///"x": projectedPoints[i].y,
+					///"y": projectedPoints[i].x,
+					"y": webMercator.y,
+					"attributes": attributes
+				  };
+				});
+*/				
+
+				var sls = SimpleLineSymbol;
+				var sms = SimpleMarkerSymbol;
+				var ssym = new sms(
+                  sms.STYLE_CIRCLE, 14,
+                  new sls(
+                    sls.STYLE_SOLID,
+                    new Color([255,255,0]), 2
+                  ),
+                  new Color([0,191,255,0.75])
+                );
+				//console.log(photoInfo.data);
+				clusterLayer = new ClusterLayer({
+				  "data": photoInfo.data,
+				  "distance": 100,
+				  "id": "clusters",
+				  "labelColor": "#fff",
+				  "labelOffset": 10,
+				  "resolution": map.extent.getWidth() / map.width,
+				  "singleColor": "#888",
+				  "singleSymbol": ssym,
+				  //"spatialReference": outSR,
+				  "singleTemplate": popupTemplate
+				});
+//				var defaultSym = new SimpleMarkerSymbol().setSize(4);
+				
+				var picBaseUrl = "http://static.arcgis.com/images/Symbols/Shapes/";
+				var defaultSym = ssym;//new PictureMarkerSymbol(picBaseUrl + 'BluePin1LargeB.png', 32, 32).setOffset(0, 15);
+				var renderer = new ClassBreaksRenderer(defaultSym, "clusterCount");
+				
+				
+
+				var small = new sms('circle', 25,
+							new sls(sls.STYLE_SOLID, new Color([0,191,0,0.25]), 15),
+							new Color([0,191,0,0.5]));
+				var medium = new sms('circle', 35,
+										  new sls(sls.STYLE_SOLID, new Color([148,0,211,0.25]), 15),
+										  new Color([148,0,211,0.5]));
+				var large = new sms('circle', 50,
+							new sls(sls.STYLE_SOLID, new Color([255,0,0,0.25]), 15),
+							new Color([255,0,0,0.5]));
+				renderer.addBreak(2, 10, small);
+				renderer.addBreak(10, 25, medium);
+				renderer.addBreak(25, 5000, large);
+				/*
+				var blue = new PictureMarkerSymbol(picBaseUrl + "BluePin1LargeB.png", 32, 32).setOffset(0, 15);
+				var green = new PictureMarkerSymbol(picBaseUrl + "GreenPin1LargeB.png", 64, 64).setOffset(0, 15);
+				var red = new PictureMarkerSymbol(picBaseUrl + "RedPin1LargeB.png", 72, 72).setOffset(0, 15);
+				renderer.addBreak(0, 2, blue);
+				renderer.addBreak(2, 200, green);
+				renderer.addBreak(200, 1001, red);
+				*/
+				clusterLayer.setRenderer(renderer);
+				map.addLayer(clusterLayer);				
+				
+//			  });
+			  
+			  gsvc.on("error", gerror);
+/*			
+            photoInfo.data = arrayUtils.map(resp, function(p) {
+			  var proj = projectToLatLong(p.PXCENTER, p.PYCENTER);
+			  //console.log(p.PXCENTER, p.PYCENTER);
+			  //console.log(proj);
+              //var latlng = new  Point(parseFloat(p.lng), parseFloat(p.lat), wgs);
+              var latlng = new  Point(proj.y, proj.x, wgs);
+              var webMercator = webMercatorUtils.geographicToWebMercator(latlng);
+              var attributes = {
+                "Caption": p.PROBLEM,
+                "Name": p.L_NAME,
+                "Image": p.ADDRESS,
+                "Link": p.STREET
+              };
+              return {
+                "x": webMercator.x,
+                "y": webMercator.y,
+                "attributes": attributes
+              };
+            });
+            // popupTemplate to work with attributes specific to this dataset
+            var popupTemplate = new PopupTemplate({
+              "title": "",
+              "fieldInfos": [{
+                "fieldName": "Caption",
+                visible: true
+              }, {
+                "fieldName": "Name",
+                "label": "By",
+                visible: true
+              }, {
+                "fieldName": "Link",
+                "label": "On Instagram",
+                visible: true
+              }],
+              "mediaInfos": [{
+                "title": "",
+                "caption": "",
+                "type": "image",
+                "value": {
+                  "sourceURL": "{Image}",
+                  "linkURL": "{Link}"
+                }
+              }]
+            });
+            // cluster layer that uses OpenLayers style clustering
+            clusterLayer = new ClusterLayer({
+              "data": photoInfo.data,
+              "distance": 100,
+              "id": "clusters",
+              "labelColor": "#fff",
+              "labelOffset": 10,
+              "resolution": map.extent.getWidth() / map.width,
+              "singleColor": "#888",
+              "singleTemplate": popupTemplate
+            });
+            var defaultSym = new SimpleMarkerSymbol().setSize(4);
+            var renderer = new ClassBreaksRenderer(defaultSym, "clusterCount");
+            var picBaseUrl = "http://static.arcgis.com/images/Symbols/Shapes/";
+            var blue = new PictureMarkerSymbol(picBaseUrl + "BluePin1LargeB.png", 32, 32).setOffset(0, 15);
+            var green = new PictureMarkerSymbol(picBaseUrl + "GreenPin1LargeB.png", 64, 64).setOffset(0, 15);
+            var red = new PictureMarkerSymbol(picBaseUrl + "RedPin1LargeB.png", 72, 72).setOffset(0, 15);
+            renderer.addBreak(0, 2, blue);
+            renderer.addBreak(2, 200, green);
+            renderer.addBreak(200, 1001, red);
+            clusterLayer.setRenderer(renderer);
+            map.addLayer(clusterLayer);
+*/
+            // close the info window when the map is clicked
+            map.on("click", cleanUp);
+            // close the info window when esc is pressed
+            map.on("key-down", function(e) {
+              if (e.keyCode === 27) {
+                cleanUp();
+              }
+            });
+          }
+		  
+		  function projectToLatLong(x, y) {
+			  var outSR = new SpatialReference(4326);
+			  pt = new esri.geometry.Point( x, y, new SpatialReference(102696) );
+			  //pt2 = new esri.geometry.Point( 813583.496, 1021019.527, new SpatialReference(102696) );
+			  var params = new ProjectParameters();
+			  params.geometries = [pt];
+			  params.outSR = outSR;
+			  
+			  //gsvc.project([ pt ], outSR, function(projectedPoints) {
+			  gsvc.project(params, function(projectedPoints) {
+				pt = projectedPoints[0];
+				//pt2 = projectedPoints[1];
+				
+				//console.log(projectedPoints.length);
+				console.log(pt.y, pt.x);
+				//console.log(pt2.y, pt2.x);
+				
+				return pt;
+				
+				//dom.byId("latlong").innerHTML = "<span>Latitude: </span> " + 
+				//  pt.y.toFixed(3) + "<br><span>Longitude:</span>" + pt.x.toFixed(3);
+			  });
+			}		  
+
+          function cleanUp() {
+            map.infoWindow.hide();
+            clusterLayer.clearSingles();
+			//projectToLatLong();
+          }
+
+          function error(err) {
+            console.log("something failed: ", err);
+          }
+		  
+          function gerror(err) {
+            console.log("gsvc failed: ", err);
+          }		  
+
+          // show cluster extents...
+          // never called directly but useful from the console 
+          window.showExtents = function() {
+            var extents = map.getLayer("clusterExtents");
+            if ( extents ) {
+              map.removeLayer(extents);
+            }
+            extents = new GraphicsLayer({ id: "clusterExtents" });
+            var sym = new SimpleFillSymbol().setColor(new Color([205, 193, 197, 0.5]));
+
+            arrayUtils.forEach(clusterLayer._clusters, function(c, idx) {
+              var e = c.attributes.extent;
+              extents.add(new Graphic(new Extent(e[0], e[1], e[2], e[3], map.spatialReference), sym));
+            }, this);
+            map.addLayer(extents, 0);
+          };
+        });
+      });
+    </script>
+  </head>
+  
+  <body>
+    <div data-dojo-type="dijit/layout/BorderContainer" 
+         data-dojo-props="design:'headline',gutters:false" 
+         style="width: 100%; height: 100%; margin: 0;">
+      <div id="map" 
+           data-dojo-type="dijit/layout/ContentPane" 
+           data-dojo-props="region:'center'"
+		   style="left:200px;position:absolute;"> 
+      </div>
+<!--	  
+		<div style="float:left;width: 100px;z-index:1;position:absolute;">
+		<input type="text" placeholder="Maint. By"> 
+		<input type="text" placeholder="Date">
+		<input type="text"  placeholder="Officer">
+		<input type="submit">
+		 
+		</div>	  -->
+    </div>
+  </body>
+</html>
+
