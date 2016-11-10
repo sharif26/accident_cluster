@@ -58,7 +58,7 @@
         "esri/tasks/ProjectParameters",
         
 
-        "extras/ClusterLayer",
+        "extras/ClusterLayer",		//ClusterLayer.js file, need to put under extras folder
 
         "dijit/layout/BorderContainer", 
         "dijit/layout/ContentPane", 
@@ -120,8 +120,8 @@
             // get the latest 1000 photos from instagram/laguna beach
             var photos = esriRequest({
               //url: "data/1000-photos.json",
-              url: "https://appz.chesterfield.mo.us/cmss_files/getcrime.php" + location.search,
-              //url: "https://appz.chesterfield.mo.us/cmss/cscrs/load.php?type=searchWO&lastName=&reportedBegin=&reportedEnd=&woID=&woStatus=open&streetWO=&subdivisionWO=&problemID=&disposition=&assignedTo=191",
+              url: "",		//REST url removed for security reason
+       
               handleAs: "json"
             });
 			//console.log( photos );
