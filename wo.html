@@ -72,8 +72,9 @@
       ) {
         ready(function() {
           parser.parse();
-		  esriConfig.defaults.io.corsEnabledServers.push("www.chesterfield.mo.us");
-		  esriConfig.defaults.io.corsEnabledServers.push("appz.chesterfield.mo.us");
+		//use own domain  
+		esriConfig.defaults.io.corsEnabledServers.push("www.chesterfield.mo.us");
+		  
   
           var clusterLayer;
           var popupOptions = {
@@ -101,13 +102,12 @@
 			sliderOrientation : "horizontal"
           });
 		  
-		  dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://mapping.chesterfield.mo.us/arcgis/rest/services/GeneralPurpose1/MapServer");
-		  //dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://webgis.chesterfield.mo.us/arcgis/rest/services/Plan/ActiveProjects/MapServer");
+		  dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://tasks.arcgisonline.com/arcgis/rest/services/GeneralPurpose1/MapServer");
+		  
 		  map.addLayer(dynamicMSLayer);
 		  //map.setScale(50000);
 		  
-		  //gsvc = new esri.tasks.GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
-		  gsvc = new esri.tasks.GeometryService("http://mapping.chesterfield.mo.us/arcgis/rest/services/Utilities/Geometry/GeometryServer");
+		  gsvc = new esri.tasks.GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
 		  //console.log(gsvc);
           map.on("load", function() {
 		  
@@ -120,8 +120,7 @@
             // get the latest 1000 photos from instagram/laguna beach
             var photos = esriRequest({
               //url: "data/1000-photos.json",
-              url: "https://www.chesterfield.mo.us/cmss_files/getwo.php" + location.search,
-              //url: "https://appz.chesterfield.mo.us/cmss/cscrs/load.php?type=searchWO&lastName=&reportedBegin=&reportedEnd=&woID=&woStatus=open&streetWO=&subdivisionWO=&problemID=&disposition=&assignedTo=191",
+              url: "/getwo.php" + location.search,	//use own json data              
               handleAs: "json"
             });
 			//console.log( photos );
