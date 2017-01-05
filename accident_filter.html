@@ -118,8 +118,9 @@
       ) {
         ready(function() {
           parser.parse();
+		  //put your own domain here
 		  esriConfig.defaults.io.corsEnabledServers.push("www.chesterfield.mo.us");
-		  esriConfig.defaults.io.corsEnabledServers.push("appz.chesterfield.mo.us");
+		  
 
 
 	
@@ -157,8 +158,7 @@
 
             // get the latest 1000 photos from instagram/laguna beach
             var photos = esriRequest({
-              //url: "data/1000-photos.json",
-              url: "http://www.chesterfield.mo.us/cmss_files/getacc.php",
+              url: "data/1000-photos.json", //use your own json data here
               handleAs: "json"
             });
 			//console.log( photos );
