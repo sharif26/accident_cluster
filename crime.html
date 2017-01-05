@@ -100,14 +100,11 @@
 			center: [-90.562, 38.662 ],
 			sliderOrientation : "horizontal"
           });
-		  
-		  dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://mapping.chesterfield.mo.us/arcgis/rest/services/GeneralPurpose1/MapServer");
-		  //dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://webgis.chesterfield.mo.us/arcgis/rest/services/Plan/ActiveProjects/MapServer");
+		  //use own basemap, geometry service here
+		  dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://tasks.arcgisonline.com/arcgis/rest/services/GeneralPurpose1/MapServer");
 		  map.addLayer(dynamicMSLayer);
 		  //map.setScale(50000);
-		  
-		  //gsvc = new esri.tasks.GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
-		  gsvc = new esri.tasks.GeometryService("http://mapping.chesterfield.mo.us/arcgis/rest/services/Utilities/Geometry/GeometryServer");
+		  gsvc = new esri.tasks.GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
 		  //console.log(gsvc);
           map.on("load", function() {
 		  
