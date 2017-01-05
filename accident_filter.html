@@ -58,7 +58,7 @@
 //		$("#officer").autocomplete();
 		
 		var t = $("#officer").autocomplete( {
-				source: "http://www.chesterfield.mo.us/cmss_files/getacc.php?type=1",
+				source: "/getacc.php?type=1",	//absolute url removed
 				minChars: 3,
 				matchContains: true
 			})/*.result(function(event, data) {
@@ -141,14 +141,14 @@
 			sliderOrientation : "horizontal",
 			sliderPosition: "top-right"
           });
-		  
-		  dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://mapping.chesterfield.mo.us/arcgis/rest/services/GeneralPurpose1/MapServer");
-		  //dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://webgis.chesterfield.mo.us/arcgis/rest/services/Plan/ActiveProjects/MapServer");
+		  //use your own general purpose service here
+		  dynamicMSLayer = new ArcGISDynamicMapServiceLayer("http://tasks.arcgisonline.com/arcgis/rest/services/GeneralPurpose1/MapServer");
 		  map.addLayer(dynamicMSLayer);
 		  //map.setScale(50000);
 		  
-		  //gsvc = new esri.tasks.GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
-		  gsvc = new esri.tasks.GeometryService("http://mapping.chesterfield.mo.us/arcgis/rest/services/Utilities/Geometry/GeometryServer");
+		  //use your own geometry service
+		  gsvc = new esri.tasks.GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
+		  
 		  //console.log(gsvc);
           map.on("load", function() {
 		  
@@ -398,8 +398,7 @@
 			console.log(maint);
 			map.removeLayer(map.getLayer("clusters"));
             var photos = esriRequest({
-              //url: "data/1000-photos.json",
-              url: "http://www.chesterfield.mo.us/cmss_files/getacc.php?maint="+maint+"&officer="+officer+"&start_date="+start+"&end_date="+end,
+              url: "data/1000-photos.json",	//use your own json data here
               handleAs: "json"
             });
 			//console.log( photos );
